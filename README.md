@@ -1,115 +1,109 @@
-## 📘 README.md
+# ParkIQ — Dynamic Parking Pricing System
+## IIT Guwahati Hackathon Project
 
-```markdown
-# 🚗 Dynamic Pricing for Urban Parking Lots
-
-This project simulates a real-time, intelligent pricing engine for urban parking spaces using historical and streaming data. It adjusts parking prices dynamically based on demand, traffic conditions, queue lengths, special events, and competition between nearby lots.
-
-Developed as part of the **Summer Analytics 2025** capstone challenge hosted by the **Consulting & Analytics Club × Pathway**.
+A full-stack Flask web application for real-time dynamic parking pricing, featuring 3 pricing models, interactive charts, map view, and CSV data ingestion.
 
 ---
 
-## 📊 Project Overview
-
-Urban parking spaces are limited and often mispriced due to static pricing models. This project introduces a **data-driven dynamic pricing system** that reacts to real-time features to improve utilization and efficiency.
-
----
-
-## 🔍 Features
-
-- ⏱️ Real-time simulation of 14 parking lots over 73 days
-- 📈 Three dynamic pricing models:
-  1. **Baseline Linear Model** – Increases price based on occupancy
-  2. **Demand-Based Model** – Uses a weighted demand function
-  3. **Competitive Model (Optional)** – Adjusts price based on nearby lots' pricing
-- 📡 Live data simulation using **Pathway**
-- 🧠 Models implemented from scratch using **NumPy** and **Pandas**
-- 📉 Visualizations using **Bokeh** and **Plotly**
-
----
-
-## 📁 Dataset
-
-- **Records:** 18,000+ (sampled every 30 mins between 8:00 AM – 4:30 PM)
-- **Fields Include:**
-  - `Latitude`, `Longitude`, `Capacity`, `Occupancy`
-  - `VehicleType`, `TrafficConditionNearby`, `QueueLength`
-  - `IsSpecialDay`, `Datetime`
-
----
-
-## 🧠 Model Summary
-
-### 1️⃣ Baseline Linear Model
-Price increases linearly with occupancy:
+## Project Structure
 
 ```
-
-Price\_t+1 = Price\_t + α \* (Occupancy / Capacity)
-
+parking_app/
+├── app.py                  # Flask routes & API
+├── requirements.txt
+├── models/
+│   ├── __init__.py
+│   └── pricing.py          # All 3 pricing models
+└── templates/
+    ├── login.html
+    └── dashboard.html
 ```
 
 ---
 
-### 2️⃣ Demand-Based Model
-Price adjusts based on calculated demand:
-
-```
-
-Demand = α\*(Occupancy/Capacity) + β*QueueLength − γ*Traffic + δ*IsSpecialDay + ε*VehicleTypeWeight
-Price = BasePrice \* (1 + λ \* NormalizedDemand)
-
-````
-
----
-
-### 3️⃣ Competitive Model (Optional)
-- Uses geospatial proximity to simulate nearby lot competition
-- Price decreases or reroutes vehicles if nearby lots are cheaper
-
----
-
-## ⚙️ Tech Stack
-
-| Component         | Technology           |
-|------------------|----------------------|
-| Data Processing   | Python, Pandas, NumPy |
-| Real-Time Engine  | Pathway              |
-| Visualization     | Bokeh, Plotly        |
-| Geo Calculations  | Geopy                |
-| Deployment        | Google Colab / Jupyter Notebook |
-
----
-
-## 📦 Installation
+## Setup
 
 ```bash
-pip install pandas numpy pathway bokeh plotly geopy
-````
+# 1. Create virtual environment
+python -m venv venv
+source venv/bin/activate        # Linux/Mac
+venv\Scripts\activate           # Windows
+
+# 2. Install dependencies
+pip install -r requirements.txt
+
+# 3. Run the app
+python app.py
+```
+
+Open `http://localhost:5000` in your browser.
 
 ---
 
-## ▶️ How to Run
+## Login Credentials
 
-1. Open the notebook in **Google Colab** or **VS Code Jupyter**.
-2. Run all cells from top to bottom.
-3. Visualizations will auto-generate using Bokeh or Plotly.
-4. To view real-time charts using Bokeh:
-
-   * Use `output_file()` to export to an interactive HTML page.
+| Username | Password   |
+|----------|------------|
+| admin    | admin123   |
+| owner    | owner123   |
 
 ---
 
-## 📊 Visualization
+## CSV Format
 
-* 📍 Real-time pricing line plots per parking lot
-* 📊 Comparison of price trends over time
-* 📡 Competitor-aware pricing changes (Model 3)
+Your CSV should contain these columns:
+
+| Column                | Description                        |
+|-----------------------|------------------------------------|
+| `LastUpdatedDate`     | Date in `DD-MM-YYYY` format        |
+| `LastUpdatedTime`     | Time in `HH:MM:SS` format          |
+| `Occupancy`           | Number of occupied spots           |
+| `Capacity`            | Total capacity of the lot          |
+| `QueueLength`         | Cars waiting (optional)            |
+| `TrafficConditionNearby` | low / medium / high (optional) |
+| `VehicleType`         | car / bike / bus / truck (optional)|
+| `IsSpecialDay`        | 0 or 1 (optional)                  |
+| `Latitude`            | Lat for geospatial pricing (opt.)  |
+| `Longitude`           | Lon for geospatial pricing (opt.)  |
 
 ---
 
-## 📝 Assumptions
+## Pricing Models
 
-* Base price is fixed at **\$10**
-* Demand normalization ensures price stays between **0.5x and 2x** base
-* Vehicle weights and traffic weights are manually tuned
+### 1. Baseline Linear
+```
+new_price = prev_price + α × (occupancy / capacity)
+```
+Simple, interpretable model. Price grows proportionally with occupancy.
+
+### 2. Demand-Based
+```
+demand = 1.2×occ_rate + 0.8×queue − 0.5×traffic + 1.0×special_day + 0.6×vehicle_weight
+final_price = base × (1 + λ × normalized_demand)   [clipped to 0.5×base … 2×base]
+```
+Multi-factor model capturing richer demand signals.
+
+### 3. Competitive
+Starts from baseline price, then adjusts based on competitor lots within 500m:
+- If occ > 90% AND your price > avg competitor → reduce ₹5 (stay competitive)
+- If competitor avg > your price → raise ₹3 (capture market)
+
+---
+
+## Features
+
+- **Real-time updates** — simulates a new data point every 30 seconds
+- **CSV upload** — drag & drop your own parking lot CSV
+- **3 live charts** — Plotly.js with hover tooltips
+- **Map view** — Leaflet + CartoDB dark tiles showing your lot vs competitors
+- **Comparison table** — highlights lowest price per timestamp
+- **User auth** — Flask-Login with session management
+
+---
+
+## Extending the Project
+
+- Replace the in-memory `USERS` dict with SQLite/PostgreSQL + Flask-SQLAlchemy
+- Add real competitor data via a parking API or manual input
+- Deploy to Heroku / Render with `gunicorn app:app`
+- Add WebSocket (Flask-SocketIO) for true real-time without polling
